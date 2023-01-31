@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Подписка на рассылку</title>
+</head>
+<body>
+<form action="{% url 'subscribe' %}" method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+<button type="submit">Подтвердить</button>
+</form>
+</body>
+</html>

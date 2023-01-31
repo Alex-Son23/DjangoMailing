@@ -11,24 +11,26 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
-import djcelery
-import sys
-
-from django.conf.urls import include
-from django.template.defaulttags import url
-# from urls import urlpatterns
+import environ
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
+print BASE_DIR
+# env = environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+env = environ.Env(
+    DEBUG=(bool, True)
+)
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'c2l-e4#qc0^4wnrrn-mbgw@kh81k6ets@19^y1(^6)w5r@6h9='
+SECRET_KEY = env.str('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.str('DEBUG')
+
 
 ALLOWED_HOSTS = []
 
@@ -41,12 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'django-registration',
-    'django.contrib.sites',
-    'django_redis',
-    'dbmail',
+    'mailer',
 ]
-SITE_ID=1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -63,7 +61,7 @@ ROOT_URLCONF = 'mailer.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['mailer/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,77 +122,27 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-CACHES = {
-    # or Redis
-    "default": {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': '127.0.0.1:6379:2',
-    },
-    # "default": {
-    #     'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-    #     'LOCATION': 'unique-snowflake'
-    # },
+# EMAIL_USE_TLS = True
+# EMAIL_USE_SSL = True
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_HOST_USER = "hakuforprog@gmail.com"
+# EMAIL_HOST_PASSWORD = "hakuforprog1990"
+# EMAIL_PORT = 465
 
-    # 'default': {
-    #         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-    #         'LOCATION': '/tmp/django_cache',
-    # }
-}
 
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'alexson2302@gmail.com'
-EMAIL_HOST_PASSWORD = ''
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'User <alexson2302@gmail.com>'
+# EMAIL_USE_TLS = True
+EMAIL_USE_SSL = True
+EMAIL_HOST = env.str('EMAIL_HOST')
+EMAIL_HOST_USER = env.str('EMAIL_LOGIN')
+EMAIL_HOST_PASSWORD = env.str('EMAIL_PASSWORD')
+EMAIL_PORT = 465
 
-INSTALLED_APPS += ('reversion',)
+REDIS_HOST = '127.0.0.1'
+REDIS_PORT = '6379'
+CELERY_BROKER_URL = 'redis://{}:{}/0'.format(REDIS_HOST, REDIS_PORT)
+CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
+CELERY_RESULT_BACKEND = 'redis://{}:{}/0'.format(REDIS_HOST, REDIS_PORT)
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 
-# urlpatterns.append(
-#     url(r'^tinymce/', include('tinymce.urls')),
-#     url(r'^dbmail/', include('dbmail.urls')),)
-
-INSTALLED_APPS += ('tinymce','ckeditor_uploader')
-TINYMCE_DEFAULT_CONFIG = {
-    'plugins': "table,spellchecker,paste,searchreplace",
-    'theme': "advanced",
-    'cleanup_on_startup': True,
-    'custom_undo_redo_levels': 10,
-}
-
-PROJECT_ROOT = os.path.normpath(os.path.dirname(__file__))
-MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media')
-
-CKEDITOR_UPLOAD_PATH = os.path.join(MEDIA_ROOT, 'uploads')
-
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': None,
-        'height': 300,
-        'width': '100%',
-        'allowedContent': True,
-    },
-}
-
-DB_MAILER_TRACK_ENABLE = True
-DB_MAILER_ENABLE_LOGGING = True
-
-# --------------------------------------------------------------------------------------------------
-
-INSTALLED_APPS += ('djcelery',)
-
-BROKER_URL = 'redis://127.0.0.1:6379/1'
-
-CELERY_ACKS_LATE = True
-CELERYD_PREFETCH_MULTIPLIER = 1
-
-# use priority steps only for mail queue
-if 'mail_messages' in sys.argv:
-    BROKER_TRANSPORT_OPTIONS = {
-        'priority_steps': list(range(10)),
-    }
-
-CELERY_TASK_SERIALIZER = 'pickle'
-CELERY_DEFAULT_QUEUE = 'default'  # use mail_messages, if workers is divided
-
-djcelery.setup_loader()
